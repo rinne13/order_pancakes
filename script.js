@@ -10,60 +10,29 @@ let total = 0;
 let toppings = [];
 let extras = [];
 
-// Funktio kokonaiskustannusten laskemiseen
-const pancakePriceCalc = () => {
-  // Haetaan viittauksia elementteihin kokonaiskustannusten näyttämiseksi
+// Funktio kokonaiskustannusten laskemiseen ja valittujen täytteiden ja lisukkeiden tarkistamiseen
+const updateOrderDetails = () => {
   const totalPriceElement = document.querySelector('#totalPrice');
-
-  // Haetaan valitun lettutyypin perushinta
   total = parseInt(typeSelect.value);
-  
-  // Päivitetään täytteiden ja lisukkeiden listat ja lisätään niiden hinta kokonaiskustannuksiin
-  checkToppings();
-
-  // Päivitetään teksti kokonaiskustannuksilla
-  totalPriceElement.textContent = `${total}€`;
-  
-  // Animaatio hintamuutoksen visuaaliseen efektiin
-  animatePriceChange();
-};
-
-// Funktio elementin lisäämiseksi vastaavaan listaan
-const addItem = (itemName, category) => {
-  if (category === 'toppings') {
-    toppings.push(itemName);
-  } else {
-    extras.push(itemName);
-  }
-};
-
-// Funktio elementin poistamiseksi vastaavasta listasta
-const removeItem = (itemName, category) => {
-  if (category === 'toppings') {
-    toppings = toppings.filter(item => item !== itemName);
-  } else {
-    extras = extras.filter(item => item !== itemName);
-  }
-};
-
-// Funktio valittujen täytteiden ja lisukkeiden tarkistamiseen
-const checkToppings = () => {
-  // Tyhjennetään täytteiden ja lisukkeiden listat
   toppings = [];
   extras = [];
-
-  // Käydään läpi kaikki valintaruudut ja päivitetään kokonaiskustannukset ja täytteiden/lisukkeiden listat
+  
   checkboxes.forEach(item => {
     const itemName = item.dataset.name;
     const category = item.dataset.category;
-
     if (item.checked) {
       total += parseInt(item.value);
-      addItem(itemName, category);
-    } else {
-      removeItem(itemName, category);
+      if (category === 'toppings') {
+        toppings.push(itemName);
+      } else {
+        extras.push(itemName);
+      }
     }
   });
+
+  totalPriceElement.textContent = `${total}€`;
+  animatePriceChange();
+  updatePriceDisplay();
 };
 
 // Funktio hintamuutoksen animointiin
@@ -91,35 +60,20 @@ const displayOrder = () => {
   const orderNameElement = document.querySelector('#order_name');
   const orderPriceElement = document.querySelector('#order_price');
 
-  // Päivitetään valittu lettutyyppi
   orderTypeElement.textContent = typeSelect.selectedOptions[0].text;
-
-  // Päivitetään valitut täytteet
   orderToppingsElement.textContent = toppings.length > 0 ? toppings.join(', ') : 'No toppings selected.';
-
-  // Päivitetään valitut lisukkeet
   orderExtrasElement.textContent = extras.length > 0 ? extras.join(', ') : 'No extras selected.';
-
-  // Päivitetään asiakkaan nimi
   orderNameElement.textContent = customerName;
-
-  // Päivitetään asiakkaan lopullinen hinta
   orderPriceElement.textContent = `${total}€`;
-
-  // Päivitetään tilauksen kokonaiskustannukset luokassa 'price-display'
-  updatePriceDisplay();
 };
 
 // Tapahtumankäsittelijä lomakkeen muutokselle
-form.addEventListener('change', () => {
-  pancakePriceCalc();
-  updatePriceDisplay();
-});
+form.addEventListener('change', updateOrderDetails);
 
 // Tapahtumankäsittelijä painikkeen painallukselle
 button.addEventListener('click', () => {
   displayOrder();
-  createOrder();
+  clearForm(); // После создания заказа очищаем форму
 });
 
 // Funktio kokonaiskustannusten päivittämiseksi luokassa 'price-display'
@@ -188,7 +142,7 @@ const clearForm = () => {
   checkboxes.forEach(checkbox => {
     checkbox.checked = false;
   });
-  pancakePriceCalc(); // Päivitetään hinta perushintaan
+  updateOrderDetails(); // Päivitetään hinta perushintaan
 };
 
 // Funktio tilausten tallentamiseksi localStorageen
@@ -202,36 +156,23 @@ const loadOrders = () => {
   const savedOrders = localStorage.getItem('orders');
   orders = savedOrders ? JSON.parse(savedOrders) : [];
   console.log('Tilaukset ladattu localStoragesta:', orders);
+  displayOrders(); // Näytetään ladatut tilaukset
 };
 
 // Funktio kaikkien tilausten näyttämiseksi
 const displayOrders = () => {
-  const ordersList = document.querySelector('#ordersList');
-
   if (!ordersList) {
     console.error('Element with ID "ordersList" not found.');
     return;
   }
-
-  ordersList.innerHTML = ''; // Tyhjennetään tilausten lista ennen päivitystä
-
+  ordersList.innerHTML = '';
   orders.forEach((order, index) => {
     const orderElement = document.createElement('div');
-    orderElement.classList.add('order');
-
+    orderElement.className = `order ${order.completed ? 'completed' : ''}`;
     orderElement.innerHTML = `
-      <h3>Order ${index + 1}</h3>
-      <div class="order-details">
-        <strong>Asiakas:</strong> ${order.customerName}<br>
-        <strong>Tyyppi:</strong> ${order.pancakeType}<br>
-        <strong>Lisukkeet:</strong> ${order.toppings.length > 0 ? order.toppings.join(', ') : 'None'}<br>
-        <strong>Lisävaihtoehdot:</strong> ${order.extras.length > 0 ? order.extras.join(', ') : 'None'}<br>
-        <strong>Hinta:</strong> ${order.totalPrice}€<br>
-        <strong>Status:</strong> ${order.completed ? 'Completed' : 'Pending'}
-      </div>
-      <button onclick="markOrderCompleted(${index})">Mark as Completed</button>
+      <p>${order.getOrderSummary()}</p>
+      <button onclick="markOrderCompleted(${index})">Complete</button>
     `;
-
     ordersList.appendChild(orderElement);
   });
 };
@@ -247,14 +188,11 @@ const markOrderCompleted = (index) => {
   }
 };
 
-// Kutsutaan funktiota tilausten lataamiseksi sivun latautuessa
-document.addEventListener('DOMContentLoaded', () => {
-  loadOrders();
-  displayOrders(); // Näytetään ladatut tilaukset
-});
-
 // Päivitä olemassa oleva tilaus ja localStorage
 const updateOrder = (index, updatedOrder) => {
   orders[index] = updatedOrder;
   saveOrders();
 };
+
+// Kutsutaan funktiota tilausten lataamiseksi sivun latautuessa
+document.addEventListener('DOMContentLoaded', loadOrders);
