@@ -109,7 +109,11 @@ let orders = [];
 
 // Funktio uuden tilauksen luomiseksi
 const createOrder = () => {
-  const customerName = document.querySelector('#customerName').value;
+  const customerName = document.querySelector('#customerName').value.trim();
+  if (!customerName) {
+    alert("Kenttä 'Nimesi' on pakollinen.");
+    return;
+  }
   const pancakeType = typeSelect.selectedOptions[0].text;
   
   // Haetaan valitut täytteet ja lisukkeet
@@ -196,3 +200,6 @@ const updateOrder = (index, updatedOrder) => {
 
 // Kutsutaan funktiota tilausten lataamiseksi sivun latautuessa
 document.addEventListener('DOMContentLoaded', loadOrders);
+
+
+
