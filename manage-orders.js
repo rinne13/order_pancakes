@@ -13,13 +13,15 @@ const saveOrders = () => {
   console.log('Tilaukset tallennettu localStorageen.');
 };
 
-
-    
-
-// Lataa ja näytä tilaukset
+// Funktio tilausten näyttämiseksi sivulla
 const displayOrders = () => {
   const ordersList = document.querySelector('#ordersList');
-  ordersList.innerHTML = ''; // Tyhjennä tilausten lista ennen päivitystä
+  if (!ordersList) {
+    console.error('Elementtiä, jonka ID on "ordersList", ei löytynyt.');
+    return;
+  }
+
+  ordersList.innerHTML = ''; // Tyhjennetään tilausten lista ennen päivittämistä
 
   if (!Array.isArray(orders) || orders.length === 0) {
     ordersList.innerHTML = '<p>Ei tilauksia näytettäväksi.</p>';
@@ -32,21 +34,21 @@ const displayOrders = () => {
       const orderElement = document.createElement('div');
       orderElement.classList.add('order');
 
-      const creationDate = new Date(order.creationDate).toLocaleString();
+      const creationDate = order.creationDate ? new Date(order.creationDate).toLocaleString() : 'Not specified';
       const completionDate = order.completionDate ? new Date(order.completionDate).toLocaleString() : 'Pending';
 
       orderElement.innerHTML = `
-        <h3>Order ${index + 1}</h3>
+        <h3>Tilaus ${index + 1}</h3>
         <div class="order-details">
           <strong>Asiakas:</strong> ${order.customerName}<br>
           <strong>Tyyppi:</strong> ${order.pancakeType}<br>
-          <strong>Lisukkeet:</strong> ${(order.toppings?.length ?? 0) > 0 ? order.toppings.join(', ') : 'None'}<br>
-          <strong>Lisävaihtoehdot:</strong> ${(order.extras?.length ?? 0) > 0 ? order.extras.join(', ') : 'None'}<br>
+          <strong>Lisukkeet:</strong> ${(order.toppings?.length ?? 0) > 0 ? order.toppings.join(', ') : 'Ei lisukkeita'}<br>
+          <strong>Lisävaihtoehdot:</strong> ${(order.extras?.length ?? 0) > 0 ? order.extras.join(', ') : 'Ei lisävaihtoehtoja'}<br>
           <strong>Hinta:</strong> ${order.totalPrice}€<br>
-        
-          <strong>Status:</strong> ${order.completed ? 'Completed' : 'Pending'}
+          <strong>Valmistumispäivä:</strong> ${completionDate}<br>
+          <strong>Tila:</strong> ${order.completed ? 'Valmis' : 'Odottaa'}
         </div>
-        <button onclick="markOrderCompleted(${index})">Mark as Completed</button>
+        <button onclick="markOrderCompleted(${index})">Merkitse valmiiksi</button>
       `;
 
       ordersList.appendChild(orderElement);
@@ -55,24 +57,23 @@ const displayOrders = () => {
   console.log('Tilaukset ladattu ja näytetty onnistuneesti.');
 };
 
-// Merkitse tilaus valmiiksi
+// Funktio tilauksen merkitsemiseksi valmiiksi
 const markOrderCompleted = (index) => {
   if (orders[index]) {
-    orders[index].completed = true; // Muuta tilauksen tila "Completed"
-    saveOrders(); // Tallenna muutokset localStorageen
-    displayOrders(); // Päivitä tilausten näyttö
-    
+    orders[index].completed = true; // Muutetaan tilauksen tila "Valmis"
+    orders[index].completionDate = new Date().toISOString(); // Lisätään tilauksen valmistumispäivä
+    saveOrders(); // Tallennetaan muutokset localStorageen
+    displayOrders(); // Päivitetään tilausten näyttö
+  } else {
+    console.error('Tilausta indeksissä ' + index + ' ei löytynyt.');
   }
 };
 
-// Lataa tilaukset ja näytä ne sivulla
+// Ladataan tilaukset ja näytetään ne sivulla, kun dokumentti on ladattu
 document.addEventListener('DOMContentLoaded', () => {
   loadOrders();
-  displayOrders(); // Näytä ladatut tilaukset
+  displayOrders(); // Näytetään ladatut tilaukset
 });
 
-// Tarkista localStoragen tiedot
+// Tarkistetaan localStoragen tiedot
 console.log(JSON.parse(localStorage.getItem('orders')));
-
-
-
